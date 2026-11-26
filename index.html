@@ -3,9 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-  <title>Estúdio Documental & Leitor IA — Edwin Balera (V3 PWA)</title>
+  <title>Estúdio Documental & Leitor IA — Edwin Balera (V3.1 PWA)</title>
   <meta name="theme-color" content="#090d16" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="description" content="Leitor gratuito e ilimitado de PDFs, Word e Áudio/Vídeo para estudantes, com Acessibilidade Adaptativa e modo Offline-First." />
+
+  <!-- Manifest PWA Embutido (Habilita instalação nativa sem precisar de arquivo extra) -->
+  <link id="pwa-manifest" rel="manifest" href='data:application/manifest+json,{"name":"Leitor & Estúdio IA — Edwin Balera","short_name":"Leitor AVA","start_url":"./","display":"standalone","background_color":"#090d16","theme_color":"#10b981","icons":[{"src":"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 512 512%27%3E%3Crect width=%27512%27 height=%27512%27 rx=%27110%27 fill=%27%2310b981%27/%3E%3Ctext x=%2750%25%27 y=%2755%25%27 dominant-baseline=%27middle%27 text-anchor=%27middle%27 font-family=%27sans-serif%27 font-weight=%27900%27 font-size=%27220%27 fill=%27%23090d16%27%3EEB%3C/text%3E%3C/svg%3E","sizes":"512x512","type":"image/svg+xml","purpose":"any maskable"}]}' />
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -21,11 +26,11 @@
 
     :root {
       --bg-main: #090d16;
-      --bg-card: rgba(15, 23, 42, 0.85);
+      --bg-card: rgba(15, 23, 42, 0.88);
       --bg-surface: #0f172a;
       --text-main: #e2e8f0;
       --text-muted: #94a3b8;
-      --border-main: rgba(51, 65, 85, 0.65);
+      --border-main: rgba(51, 65, 85, 0.7);
       --accent-primary: #10b981;
       --accent-secondary: #22d3ee;
       --zoom-factor: 1;
@@ -33,10 +38,9 @@
       --screen-dim: 0;
     }
 
-    /* TEMAS SENSORIAIS E DE ACESSIBILIDADE */
     body.theme-light {
       --bg-main: #f8fafc;
-      --bg-card: rgba(255, 255, 255, 0.94);
+      --bg-card: rgba(255, 255, 255, 0.95);
       --bg-surface: #f1f5f9;
       --text-main: #0f172a;
       --text-muted: #475569;
@@ -58,7 +62,7 @@
 
     body.theme-green {
       --bg-main: #e8f5e9;
-      --bg-card: rgba(255, 255, 255, 0.92);
+      --bg-card: rgba(255, 255, 255, 0.94);
       --bg-surface: #dcedc8;
       --text-main: #1b5e20;
       --text-muted: #33691e;
@@ -69,7 +73,7 @@
 
     body.theme-blue {
       --bg-main: #e3f2fd;
-      --bg-card: rgba(255, 255, 255, 0.92);
+      --bg-card: rgba(255, 255, 255, 0.94);
       --bg-surface: #bbdefb;
       --text-main: #0d47a1;
       --text-muted: #1565c0;
@@ -80,7 +84,7 @@
 
     body.theme-pink {
       --bg-main: #fff0f5;
-      --bg-card: rgba(255, 255, 255, 0.92);
+      --bg-card: rgba(255, 255, 255, 0.94);
       --bg-surface: #fce4ec;
       --text-main: #880e4f;
       --text-muted: #ad1457;
@@ -89,7 +93,6 @@
       --accent-secondary: #6a1b9a;
     }
 
-    /* ALTO CONTRASTE SEGURO PARA DALTONISMO (AZUL/AMARELO) */
     body.theme-high-contrast {
       --bg-main: #000000;
       --bg-card: #0a0a0a;
@@ -124,7 +127,6 @@
       color: var(--text-main);
     }
 
-    /* FILTRO DE REDUÇÃO DE BRILHO OCULAR */
     #brightness-overlay {
       position: fixed;
       inset: 0;
@@ -134,7 +136,6 @@
       z-index: 9999;
     }
 
-    /* PARÁGRAFOS CLICÁVEIS & MODOS DE LEITURA */
     .reader-paragraph {
       font-size: calc(1rem * var(--zoom-factor));
       line-height: var(--line-height-factor);
@@ -147,31 +148,28 @@
     }
 
     .reader-paragraph:hover {
-      background-color: rgba(16, 185, 129, 0.08);
+      background-color: rgba(16, 185, 129, 0.1);
       border-color: var(--border-main);
     }
 
     .reader-paragraph.speaking-active {
-      background-color: rgba(16, 185, 129, 0.18);
+      background-color: rgba(16, 185, 129, 0.2);
       border-left: 4px solid var(--accent-primary);
       border-color: var(--accent-primary);
-      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.12);
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.15);
     }
 
-    /* FOCO TDAH: ESCURECE PARÁGRAFOS NÃO ATIVOS DURANTE A LEITURA */
     body.adhd-focus-mode.is-narrating .reader-paragraph:not(.speaking-active) {
       opacity: 0.35;
       filter: blur(0.3px);
     }
 
-    /* VISÃO MONOCULAR (COLUNA CENTRAL ESTREITA) */
     body.monocular-mode #paragraphs-container {
       max-width: 440px;
       margin-left: auto;
       margin-right: auto;
     }
 
-    /* REVERSÃO / ESPELHAMENTO VISUAL */
     body.visual-rtl #paragraphs-container {
       direction: rtl;
       text-align: right;
@@ -183,7 +181,6 @@
       transform: rotate(180deg);
     }
 
-    /* ALVOS MOTORES AMPLIADOS */
     body.large-targets button,
     body.large-targets select,
     body.large-targets input[type="range"] {
@@ -193,7 +190,6 @@
       font-size: 1rem !important;
     }
 
-    /* LATERALIDADE UNILATERAL (UMA MÃO) */
     body.one-hand-left #floating-player-bar {
       left: 12px;
       right: auto;
@@ -205,17 +201,15 @@
       max-width: 340px;
     }
 
-    /* MODO SIMPLIFICADO (FRICÇÃO ZERO) */
     body.simplified-mode .advanced-tool {
       display: none !important;
     }
 
-    /* GLOSA BOX */
     .glosa-box {
       margin-top: 8px;
       padding: 8px 10px;
       border-left: 3px solid var(--accent-secondary);
-      background: rgba(34, 211, 238, 0.1);
+      background: rgba(34, 211, 238, 0.12);
       border-radius: 0 8px 8px 0;
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.8rem;
@@ -223,13 +217,13 @@
     }
   </style>
 </head>
-<body class="min-h-screen flex flex-col pb-24">
+<body class="min-h-screen flex flex-col pb-28">
 
   <div id="brightness-overlay"></div>
 
   <!-- CABEÇALHO PRINCIPAL -->
   <header class="sticky top-0 z-40 glass px-4 py-3 border-b" style="border-color: var(--border-main);">
-    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2.5">
       <!-- IDENTIDADE -->
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-600 flex items-center justify-center shadow-lg font-extrabold text-slate-950 text-lg shrink-0">
@@ -239,7 +233,7 @@
           <div class="flex items-center gap-2 flex-wrap">
             <h1 class="font-bold text-base sm:text-lg leading-tight">Leitor & Estúdio IA</h1>
             <span id="net-status-badge" class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-              V3 PWA • Pronto Offline
+              V3.1 PWA • Pronto Offline
             </span>
           </div>
           <p class="text-xs" style="color: var(--text-muted);">Leitura Ilimitada AVA • Toque no Parágrafo • Inclusão Total</p>
@@ -248,22 +242,26 @@
 
       <!-- NAVEGAÇÃO ENTRE ABAS -->
       <nav class="flex items-center gap-1.5 p-1 rounded-xl surface-box">
-        <button id="tab-studio-btn" onclick="switchTab('studio')" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-emerald-500 text-slate-950 transition">
+        <button type="button" id="tab-studio-btn" onclick="switchTab('studio')" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-emerald-500 text-slate-950 transition">
           📖 Leitor AVA
         </button>
-        <button id="tab-about-btn" onclick="switchTab('about')" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition" style="color: var(--text-muted);">
+        <button type="button" id="tab-about-btn" onclick="switchTab('about')" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition" style="color: var(--text-muted);">
           🧠 Autor
         </button>
       </nav>
 
-      <!-- BOTÕES DE AÇÃO RÁPIDA: ACESSIBILIDADE, FEEDBACK CIENTÍFICO & LINKEDIN -->
+      <!-- BOTÕES DE AÇÃO: INSTALAR PWA, ACESSIBILIDADE, FEEDBACK & LINKEDIN -->
       <div class="flex items-center gap-2 flex-wrap">
-        <button onclick="toggleModal('a11y-modal', true)" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs sm:text-sm font-extrabold transition shadow">
+        <button type="button" id="btn-install-pwa" onclick="installPWAApp()" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs sm:text-sm font-extrabold transition shadow">
+          <span>📲 Instalar App</span>
+        </button>
+
+        <button type="button" onclick="toggleModal('a11y-modal', true)" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs sm:text-sm font-extrabold transition shadow">
           <span>♿ Acessibilidade</span>
         </button>
 
-        <button onclick="toggleModal('feedback-modal', true)" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs sm:text-sm font-extrabold transition shadow">
-          <span>⭐ Avaliar (Estudo)</span>
+        <button type="button" onclick="toggleModal('feedback-modal', true)" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs sm:text-sm font-extrabold transition shadow">
+          <span>⭐ Avaliar</span>
         </button>
 
         <a href="https://www.linkedin.com/in/edwin-balera-197ba9141?utm_source=share_via&utm_content=profile&utm_medium=member_android" target="_blank" rel="noopener noreferrer"
@@ -279,10 +277,10 @@
   ========================================================== -->
   <main id="view-studio" class="flex-1 max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
 
-    <!-- COLUNA ESQUERDA: IMPORTAÇÃO, DITADO, BUSCA LOCAL & EXPORTAÇÃO -->
+    <!-- COLUNA ESQUERDA: IMPORTAÇÃO, DITADO & EXPORTAÇÃO -->
     <section class="lg:col-span-4 flex flex-col gap-4">
 
-      <!-- 1. UPLOAD MULTI-FORMATO (ZERO CHAVE API) -->
+      <!-- 1. UPLOAD MULTI-FORMATO -->
       <div class="glass rounded-2xl p-4">
         <h2 class="text-sm font-bold uppercase tracking-wider mb-1" style="color: var(--accent-primary);">1. Abrir Livro, PDF ou Arquivo</h2>
         <p class="text-xs mb-3" style="color: var(--text-muted);">Funciona 100% no seu aparelho e <strong>sem internet</strong> após o primeiro acesso. Sem limite de páginas.</p>
@@ -291,7 +289,7 @@
           <span class="text-2xl mb-1">📂</span>
           <span class="text-xs font-bold">Toque para escolher PDF, Word ou Texto</span>
           <span class="text-[11px] mt-1" style="color: var(--text-muted);">.PDF • .DOCX • .TXT • .MD • Áudio/Vídeo</span>
-          <input id="universal-file-input" type="file" class="hidden" accept=".pdf,.docx,.txt,.md,audio/*,video/*" onchange="handleFileUpload(event)" />
+          <input id="universal-file-input" type="file" class="hidden" accept=".pdf,application/pdf,.docx,.txt,.md,audio/*,video/*" onchange="handleFileUpload(event)" />
         </label>
 
         <!-- BARRA DE PROGRESSO -->
@@ -305,12 +303,12 @@
           </div>
         </div>
 
-        <!-- PLAYER DE MÍDIA LOCAL (QUANDO CARREGAR ÁUDIO/VÍDEO) -->
+        <!-- PLAYER DE MÍDIA LOCAL -->
         <div id="media-preview-box" class="hidden mt-3 p-3 rounded-xl surface-box">
           <div class="text-[11px] font-bold mb-2" style="color: var(--accent-secondary);">🎬 Mídia Carregada</div>
           <audio id="audio-player" controls class="hidden w-full h-9"></audio>
           <video id="video-player" controls class="hidden w-full rounded-lg max-h-44"></video>
-          <p class="text-[11px] mt-2" style="color: var(--text-muted);">Use o ditado por voz abaixo para transcrever trechos ou anotações diretamente para PDF.</p>
+          <p class="text-[11px] mt-2" style="color: var(--text-muted);">Use o ditado por voz abaixo para anotar trechos diretamente para PDF.</p>
         </div>
       </div>
 
@@ -319,11 +317,11 @@
         <h2 class="text-sm font-bold uppercase tracking-wider mb-1" style="color: var(--accent-secondary);">2. Ditado por Voz ou Texto Livre</h2>
         <p class="text-xs mb-3" style="color: var(--text-muted);">Fale suas anotações de aula ou cole qualquer texto do AVA para ouvir e salvar em PDF.</p>
         <div class="flex gap-2">
-          <button id="btn-mic-start" onclick="toggleSpeechRecognition()" class="flex-1 py-2.5 px-3 rounded-xl surface-box font-bold text-xs flex items-center justify-center gap-2 transition hover:border-emerald-400">
+          <button type="button" id="btn-mic-start" onclick="toggleSpeechRecognition()" class="flex-1 py-2.5 px-3 rounded-xl surface-box font-bold text-xs flex items-center justify-center gap-2 transition hover:border-emerald-400">
             <span id="mic-dot" class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
             <span id="mic-label">Ditar por Voz</span>
           </button>
-          <button onclick="toggleEditMode()" id="btn-toggle-edit" class="py-2.5 px-3 rounded-xl surface-box font-bold text-xs transition hover:border-cyan-400">
+          <button type="button" onclick="toggleEditMode()" id="btn-toggle-edit" class="py-2.5 px-3 rounded-xl surface-box font-bold text-xs transition hover:border-cyan-400">
             ✏️ Colar / Editar
           </button>
         </div>
@@ -333,10 +331,10 @@
       <div class="glass rounded-2xl p-4 advanced-tool">
         <h2 class="text-sm font-bold uppercase tracking-wider mb-2 text-amber-400">3. Salvar Material no Aparelho</h2>
         <div class="grid grid-cols-2 gap-2">
-          <button onclick="exportToPDF()" class="py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition shadow">
+          <button type="button" onclick="exportToPDF()" class="py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition shadow">
             📄 Baixar PDF
           </button>
-          <button onclick="exportToTXT()" class="py-2.5 px-3 rounded-xl surface-box font-bold text-xs transition hover:border-emerald-400">
+          <button type="button" onclick="exportToTXT()" class="py-2.5 px-3 rounded-xl surface-box font-bold text-xs transition hover:border-emerald-400">
             📝 Baixar .TXT
           </button>
         </div>
@@ -355,35 +353,34 @@
             <p class="text-[11px]" style="color: var(--text-muted);" id="doc-stats">1 bloco • Pronto para leitura</p>
           </div>
           <div class="flex items-center gap-1.5">
-            <button onclick="adjustZoom(-0.1)" class="px-2.5 py-1.5 rounded-lg surface-box text-xs font-bold" title="Diminuir Letra">A-</button>
-            <button onclick="adjustZoom(0.1)" class="px-2.5 py-1.5 rounded-lg surface-box text-xs font-bold" title="Aumentar Letra">A+</button>
-            <button onclick="clearWorkspace()" class="px-2.5 py-1.5 rounded-lg surface-box text-xs font-bold text-rose-400" title="Limpar Tudo">🗑️</button>
+            <button type="button" onclick="adjustZoom(-0.1)" class="px-2.5 py-1.5 rounded-lg surface-box text-xs font-bold" title="Diminuir Letra">A-</button>
+            <button type="button" onclick="adjustZoom(0.1)" class="px-2.5 py-1.5 rounded-lg surface-box text-xs font-bold" title="Aumentar Letra">A+</button>
+            <button type="button" onclick="clearWorkspace()" class="px-2.5 py-1.5 rounded-lg surface-box text-xs font-bold text-rose-400" title="Limpar Tudo">🗑️</button>
           </div>
         </div>
 
         <!-- NAVEGAÇÃO POR PÁGINA / CAPÍTULO -->
         <div class="flex items-center justify-between px-3 py-2 rounded-xl surface-box mb-3">
-          <button onclick="changeBlock(-1)" class="text-xs font-bold hover:text-emerald-400">◀ Pág. Anterior</button>
+          <button type="button" onclick="changeBlock(-1)" class="text-xs font-bold hover:text-emerald-400">◀ Pág. Anterior</button>
           <span id="block-indicator" class="text-xs font-bold mono" style="color: var(--accent-primary);">Página 1 / 1</span>
-          <button onclick="changeBlock(1)" class="text-xs font-bold hover:text-emerald-400">Próx. Pág. ▶</button>
+          <button type="button" onclick="changeBlock(1)" class="text-xs font-bold hover:text-emerald-400">Próx. Pág. ▶</button>
         </div>
 
         <!-- DICA DE TOQUE -->
         <div class="text-[11px] px-3 py-2 rounded-lg mb-3 flex items-center justify-between gap-2" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25);">
           <span>👆 <strong>Toque em qualquer parágrafo</strong> para iniciar a leitura contínua dali em diante.</span>
-          <button onclick="toggleGlosaCurrentBlock()" class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-bold shrink-0" title="Tradução estrutural GLOSA para comunidade surda">🤟 GLOSA</button>
+          <button type="button" onclick="toggleGlosaCurrentBlock()" class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-bold shrink-0" title="Tradução estrutural GLOSA para comunidade surda">🤟 GLOSA</button>
         </div>
 
         <!-- MODO LEITURA: PARÁGRAFOS CLICÁVEIS -->
         <div id="paragraphs-container" class="flex-1 min-h-[360px] max-h-[540px] overflow-y-auto pr-1">
-          <!-- Parágrafos renderizados dinamicamente -->
         </div>
 
-        <!-- MODO EDIÇÃO / COLAR TEXTO (OCULTO POR PADRÃO) -->
+        <!-- MODO EDIÇÃO / COLAR TEXTO -->
         <div id="editor-container" class="hidden flex-1 flex flex-col">
           <textarea id="reader-textarea" oninput="syncCurrentBlockFromTextarea()" placeholder="Cole aqui o texto do AVA ou edite o conteúdo desta página..."
             class="flex-1 w-full min-h-[340px] surface-box rounded-xl p-3.5 text-sm leading-relaxed focus:outline-none focus:border-emerald-500 resize-none"></textarea>
-          <button onclick="toggleEditMode()" class="mt-2 py-2 px-4 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs self-end">
+          <button type="button" onclick="toggleEditMode()" class="mt-2 py-2 px-4 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs self-end">
             ✓ Concluir Edição e Voltar ao Leitor
           </button>
         </div>
@@ -391,7 +388,7 @@
       </div>
     </section>
 
-    <!-- COLUNA DIREITA: ANALISADOR & BUSCADOR OFFLINE (SEM API) -->
+    <!-- COLUNA DIREITA: ANALISADOR & BUSCADOR OFFLINE -->
     <section class="lg:col-span-3 flex flex-col gap-4 advanced-tool">
       <div class="glass rounded-2xl p-4 flex-1 flex flex-col">
         <div class="pb-3 mb-3 border-b" style="border-color: var(--border-main);">
@@ -401,23 +398,20 @@
           <p class="text-[11px]" style="color: var(--text-muted);">Localiza trechos exatos em livros inteiros sem gastar internet.</p>
         </div>
 
-        <!-- BOTÕES DE SÍNTESE AUTOMÁTICA LOCAL -->
         <div class="flex flex-wrap gap-1.5 mb-3">
-          <button onclick="generateLocalSummary()" class="text-[11px] px-2.5 py-1.5 rounded-lg surface-box hover:border-emerald-400 font-semibold transition">📋 Resumo Automático</button>
-          <button onclick="extractKeywordsLocal()" class="text-[11px] px-2.5 py-1.5 rounded-lg surface-box hover:border-cyan-400 font-semibold transition">🔑 Palavras-Chave</button>
+          <button type="button" onclick="generateLocalSummary()" class="text-[11px] px-2.5 py-1.5 rounded-lg surface-box hover:border-emerald-400 font-semibold transition">📋 Resumo Automático</button>
+          <button type="button" onclick="extractKeywordsLocal()" class="text-[11px] px-2.5 py-1.5 rounded-lg surface-box hover:border-cyan-400 font-semibold transition">🔑 Palavras-Chave</button>
         </div>
 
-        <!-- BUSCA INSTANTÂNEA POR PALAVRA NO LIVRO TODO -->
         <div class="flex gap-1.5 mb-3">
           <input id="offline-search-input" type="text" placeholder="Buscar termo no PDF..." onkeydown="if(event.key==='Enter') runOfflineSearch()"
             class="flex-1 surface-box rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-500" />
-          <button onclick="runOfflineSearch()" class="px-3 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs">Ir</button>
+          <button type="button" onclick="runOfflineSearch()" class="px-3 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs">Ir</button>
         </div>
 
-        <!-- RESULTADOS DA BUSCA / SÍNTESE -->
         <div id="search-results-box" class="flex-1 min-h-[260px] max-h-[420px] overflow-y-auto space-y-2.5 pr-1 text-xs">
           <div class="p-3 rounded-xl surface-box" style="color: var(--text-muted);">
-            Carregue um PDF ou apostila do AVA. Você pode buscar qualquer conceito (ex: "orçamento", "planejamento", "contrato") e pular direto para a página exata com um toque.
+            Carregue um PDF ou apostila do AVA. Você pode buscar qualquer conceito e pular direto para a página exata com um toque.
           </div>
         </div>
       </div>
@@ -426,10 +420,9 @@
   </main>
 
   <!-- =========================================================
-       ABA 2: QUEM É EDWIN BALERA (RAG COMPLETO + DETRAN-PA)
+       ABA 2: QUEM É EDWIN BALERA
   ========================================================== -->
   <main id="view-about" class="hidden flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 space-y-6">
-
     <section class="glass rounded-3xl p-6 sm:p-8 relative overflow-hidden">
       <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div class="space-y-3 max-w-3xl">
@@ -478,62 +471,59 @@
         </p>
       </div>
     </section>
-
   </main>
 
   <!-- =========================================================
-       BARRA FLUTUANTE DE CONTROLE CONTÍNUO DE LEITURA (PLAYER)
+       BARRA FLUTUANTE DE CONTROLE CONTÍNUO DE LEITURA
   ========================================================== -->
   <div id="floating-player-bar" class="fixed bottom-3 left-3 right-3 z-40 max-w-4xl mx-auto glass rounded-2xl px-3 py-2.5 shadow-2xl flex flex-wrap items-center justify-between gap-2">
-    <!-- CONTROLES DE REPRODUÇÃO -->
     <div class="flex items-center gap-1.5">
-      <button onclick="stepParagraph(-1)" class="px-3 py-2 rounded-xl surface-box text-xs font-bold hover:border-emerald-400" title="Parágrafo Anterior">⏮️</button>
-      <button id="btn-play-pause" onclick="togglePlayPause()" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs sm:text-sm font-extrabold shadow transition">
+      <button type="button" onclick="stepParagraph(-1)" class="px-3 py-2 rounded-xl surface-box text-xs font-bold hover:border-emerald-400" title="Parágrafo Anterior">⏮️</button>
+      <button type="button" id="btn-play-pause" onclick="togglePlayPause()" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs sm:text-sm font-extrabold shadow transition">
         ▶️ Ler Contínuo
       </button>
-      <button onclick="stepParagraph(1)" class="px-3 py-2 rounded-xl surface-box text-xs font-bold hover:border-emerald-400" title="Próximo Parágrafo">⏭️</button>
-      <button onclick="stopNarration()" class="px-2.5 py-2 rounded-xl surface-box text-xs font-bold text-rose-400" title="Parar">⏹️</button>
+      <button type="button" onclick="stepParagraph(1)" class="px-3 py-2 rounded-xl surface-box text-xs font-bold hover:border-emerald-400" title="Próximo Parágrafo">⏭️</button>
+      <button type="button" onclick="stopNarration()" class="px-2.5 py-2 rounded-xl surface-box text-xs font-bold text-rose-400" title="Parar">⏹️</button>
     </div>
 
-    <!-- VELOCIDADE & SELETOR DE VOZ -->
     <div class="flex items-center gap-2 flex-1 min-w-[200px] justify-end">
-      <select id="voice-select" onchange="saveA11yPrefs()" class="surface-box rounded-xl px-2.5 py-1.5 text-xs max-w-[160px] truncate focus:outline-none"></select>
+      <select id="voice-select" onchange="saveA11yPrefs()" class="surface-box rounded-xl px-2.5 py-1.5 text-xs max-w-[160px] truncate focus:outline-none">
+        <option value="">Voz Padrão PT-BR</option>
+      </select>
 
       <div class="flex items-center gap-1.5 surface-box rounded-xl px-2.5 py-1.5">
         <span class="text-[11px] font-bold">Vel:</span>
-        <button onclick="changeSpeed(-0.25)" class="text-xs font-extrabold px-1 hover:text-emerald-400">-</button>
+        <button type="button" onclick="changeSpeed(-0.25)" class="text-xs font-extrabold px-1 hover:text-emerald-400">-</button>
         <span id="speed-display" class="text-xs font-extrabold mono text-emerald-400">1.0x</span>
-        <button onclick="changeSpeed(0.25)" class="text-xs font-extrabold px-1 hover:text-emerald-400">+</button>
+        <button type="button" onclick="changeSpeed(0.25)" class="text-xs font-extrabold px-1 hover:text-emerald-400">+</button>
       </div>
     </div>
   </div>
 
   <!-- =========================================================
-       MODAL 1: PAINEL DE ACESSIBILIDADE ADAPTATIVA (4 EIXOS)
+       MODAL 1: PAINEL DE ACESSIBILIDADE ADAPTATIVA
   ========================================================== -->
-  <div id="a11y-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="a11y-modal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="glass rounded-3xl max-w-2xl w-full max-h-[88vh] flex flex-col overflow-hidden shadow-2xl">
       <div class="px-6 py-4 border-b flex items-center justify-between" style="border-color: var(--border-main);">
         <div>
           <h2 class="text-lg font-extrabold">♿ Painel de Acessibilidade Adaptativa</h2>
           <p class="text-xs" style="color: var(--text-muted);">Molde a tela, o áudio e os controles às suas necessidades visuais, motoras ou cognitivas.</p>
         </div>
-        <button onclick="toggleModal('a11y-modal', false)" class="text-2xl font-bold px-2 hover:text-rose-400">&times;</button>
+        <button type="button" onclick="toggleModal('a11y-modal', false)" class="text-2xl font-bold px-2 hover:text-rose-400">&times;</button>
       </div>
 
       <div class="p-6 overflow-y-auto space-y-6 text-xs sm:text-sm">
-
-        <!-- EIXO 1: VISUAL & SENSORIAL -->
         <div class="space-y-3">
           <h3 class="font-bold uppercase tracking-wider text-xs" style="color: var(--accent-primary);">1. Eixo Visual, Daltonismo & Conforto Ocular</h3>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <button onclick="setTheme('dark')" class="p-2.5 rounded-xl bg-slate-900 text-white border border-slate-700 font-semibold text-xs">🌙 Escuro</button>
-            <button onclick="setTheme('light')" class="p-2.5 rounded-xl bg-white text-slate-900 border border-slate-300 font-semibold text-xs">☀️ Claro</button>
-            <button onclick="setTheme('sepia')" class="p-2.5 rounded-xl bg-[#f4ecd8] text-[#3e2f20] border border-[#d6c3a1] font-semibold text-xs">📜 Sépia</button>
-            <button onclick="setTheme('high-contrast')" class="p-2.5 rounded-xl bg-black text-[#ffff00] border-2 border-[#ffff00] font-bold text-xs">👁️ Daltonismo / Alto Contraste</button>
-            <button onclick="setTheme('green')" class="p-2.5 rounded-xl bg-[#e8f5e9] text-[#1b5e20] border border-[#a5d6a7] font-semibold text-xs">🍃 Verde Calmo</button>
-            <button onclick="setTheme('blue')" class="p-2.5 rounded-xl bg-[#e3f2fd] text-[#0d47a1] border border-[#90caf9] font-semibold text-xs">🌊 Azul Sereno</button>
-            <button onclick="setTheme('pink')" class="p-2.5 rounded-xl bg-[#fff0f5] text-[#880e4f] border border-[#f8bbd0] font-semibold text-xs">🌸 Suave</button>
+            <button type="button" onclick="setTheme('dark')" class="p-2.5 rounded-xl bg-slate-900 text-white border border-slate-700 font-semibold text-xs">🌙 Escuro</button>
+            <button type="button" onclick="setTheme('light')" class="p-2.5 rounded-xl bg-white text-slate-900 border border-slate-300 font-semibold text-xs">☀️ Claro</button>
+            <button type="button" onclick="setTheme('sepia')" class="p-2.5 rounded-xl bg-[#f4ecd8] text-[#3e2f20] border border-[#d6c3a1] font-semibold text-xs">📜 Sépia</button>
+            <button type="button" onclick="setTheme('high-contrast')" class="p-2.5 rounded-xl bg-black text-[#ffff00] border-2 border-[#ffff00] font-bold text-xs">👁️ Alto Contraste</button>
+            <button type="button" onclick="setTheme('green')" class="p-2.5 rounded-xl bg-[#e8f5e9] text-[#1b5e20] border border-[#a5d6a7] font-semibold text-xs">🍃 Verde Calmo</button>
+            <button type="button" onclick="setTheme('blue')" class="p-2.5 rounded-xl bg-[#e3f2fd] text-[#0d47a1] border border-[#90caf9] font-semibold text-xs">🌊 Azul Sereno</button>
+            <button type="button" onclick="setTheme('pink')" class="p-2.5 rounded-xl bg-[#fff0f5] text-[#880e4f] border border-[#f8bbd0] font-semibold text-xs">🌸 Suave</button>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
@@ -559,7 +549,6 @@
           </label>
         </div>
 
-        <!-- EIXO 2: COGNITIVO, TDAH, DISLEXIA & REVERSÃO VISUAL -->
         <div class="space-y-3">
           <h3 class="font-bold uppercase tracking-wider text-xs" style="color: var(--accent-secondary);">2. Eixo Cognitivo, TDAH, Dislexia & Reversão Visual</h3>
           <div class="space-y-2">
@@ -572,14 +561,13 @@
               <span><strong>Interface Fricção Zero:</strong> Oculta ferramentas avançadas e deixa apenas o livro e o play.</span>
             </label>
             <div class="grid grid-cols-3 gap-2">
-              <button onclick="toggleBodyClass('visual-rtl')" class="p-2.5 rounded-xl surface-box font-semibold text-xs">↔️ Direita → Esquerda</button>
-              <button onclick="toggleBodyClass('visual-mirror')" class="p-2.5 rounded-xl surface-box font-semibold text-xs">🪞 Espelhar Texto</button>
-              <button onclick="toggleBodyClass('visual-rotate')" class="p-2.5 rounded-xl surface-box font-semibold text-xs">🔄 Girar 180°</button>
+              <button type="button" onclick="toggleBodyClass('visual-rtl')" class="p-2.5 rounded-xl surface-box font-semibold text-xs">↔️ Direita → Esquerda</button>
+              <button type="button" onclick="toggleBodyClass('visual-mirror')" class="p-2.5 rounded-xl surface-box font-semibold text-xs">🪞 Espelhar Texto</button>
+              <button type="button" onclick="toggleBodyClass('visual-rotate')" class="p-2.5 rounded-xl surface-box font-semibold text-xs">🔄 Girar 180°</button>
             </div>
           </div>
         </div>
 
-        <!-- EIXO 3: MOTOR, LATERALIDADE & COMANDOS DE VOZ -->
         <div class="space-y-3">
           <h3 class="font-bold uppercase tracking-wider text-xs text-amber-400">3. Eixo Motor & Mãos Livres (Hands-Free)</h3>
           <label class="flex items-center gap-2.5 p-3 rounded-xl surface-box cursor-pointer">
@@ -587,59 +575,55 @@
             <span><strong>Botões Ampliados:</strong> Aumenta a área de toque para facilitar o uso com tremores ou baixa precisão motora.</span>
           </label>
           <div class="grid grid-cols-3 gap-2">
-            <button onclick="setOneHandMode('none')" class="p-2.5 rounded-xl surface-box font-semibold text-xs">Centralizado</button>
-            <button onclick="setOneHandMode('one-hand-left')" class="p-2.5 rounded-xl surface-box font-semibold text-xs">👈 Mão Esquerda</button>
-            <button onclick="setOneHandMode('one-hand-right')" class="p-2.5 rounded-xl surface-box font-semibold text-xs">👉 Mão Direita</button>
+            <button type="button" onclick="setOneHandMode('none')" class="p-2.5 rounded-xl surface-box font-semibold text-xs">Centralizado</button>
+            <button type="button" onclick="setOneHandMode('one-hand-left')" class="p-2.5 rounded-xl surface-box font-semibold text-xs">👈 Mão Esquerda</button>
+            <button type="button" onclick="setOneHandMode('one-hand-right')" class="p-2.5 rounded-xl surface-box font-semibold text-xs">👉 Mão Direita</button>
           </div>
-          <button id="btn-voice-commands" onclick="toggleVoiceControlCommands()" class="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition">
+          <button type="button" id="btn-voice-commands" onclick="toggleVoiceControlCommands()" class="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition">
             🎙️ Ativar Controle por Voz ("Ler", "Pausar", "Próximo", "Voltar", "Mais rápido")
           </button>
         </div>
 
-        <!-- EIXO 4: AUDITIVO -->
         <div class="space-y-2">
           <h3 class="font-bold uppercase tracking-wider text-xs text-rose-400">4. Eixo Auditivo & Multimodal</h3>
-          <button onclick="readAccessibilitySummary()" class="w-full py-2.5 px-4 rounded-xl surface-box font-bold text-xs hover:border-emerald-400">
+          <button type="button" onclick="readAccessibilitySummary()" class="w-full py-2.5 px-4 rounded-xl surface-box font-bold text-xs hover:border-emerald-400">
             🔊 Ouvir Explicação Audível das Configurações
           </button>
         </div>
-
       </div>
 
       <div class="px-6 py-3 border-t flex justify-between items-center" style="border-color: var(--border-main);">
-        <button onclick="resetA11yPrefs()" class="text-xs font-bold text-rose-400 hover:underline">Restaurar Padrão</button>
-        <button onclick="toggleModal('a11y-modal', false)" class="px-5 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs">Aplicar e Fechar</button>
+        <button type="button" onclick="resetA11yPrefs()" class="text-xs font-bold text-rose-400 hover:underline">Restaurar Padrão</button>
+        <button type="button" onclick="toggleModal('a11y-modal', false)" class="px-5 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs">Aplicar e Fechar</button>
       </div>
     </div>
   </div>
 
   <!-- =========================================================
-       MODAL 2: FEEDBACK CIENTÍFICO & ESTUDO DE CASO (ENVIO DIRETO)
+       MODAL 2: FEEDBACK CIENTÍFICO & ESTUDO DE CASO
   ========================================================== -->
-  <div id="feedback-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="feedback-modal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="glass rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl">
       <div class="px-6 py-4 border-b flex items-center justify-between" style="border-color: var(--border-main);">
         <div>
           <h2 class="text-lg font-extrabold">⭐ Avaliar & Contribuir com a Pesquisa</h2>
           <p class="text-xs" style="color: var(--text-muted);">Seu relato anônimo ajuda a aprimorar o app e embasa artigos científicos sobre inclusão.</p>
         </div>
-        <button onclick="toggleModal('feedback-modal', false)" class="text-2xl font-bold px-2 hover:text-rose-400">&times;</button>
+        <button type="button" onclick="toggleModal('feedback-modal', false)" class="text-2xl font-bold px-2 hover:text-rose-400">&times;</button>
       </div>
 
       <form onsubmit="submitScientificFeedback(event)" class="p-6 space-y-4 text-xs sm:text-sm">
-        <!-- ESTRELAS -->
         <div>
           <label class="block font-bold mb-1.5">Sua avaliação geral (1 a 5 estrelas):</label>
           <div class="flex gap-2" id="star-rating-group">
-            <button type="button" onclick="setRating(1)" class="star-btn text-2xl opacity-40 hover:opacity-100">⭐</button>
-            <button type="button" onclick="setRating(2)" class="star-btn text-2xl opacity-40 hover:opacity-100">⭐</button>
-            <button type="button" onclick="setRating(3)" class="star-btn text-2xl opacity-40 hover:opacity-100">⭐</button>
-            <button type="button" onclick="setRating(4)" class="star-btn text-2xl opacity-40 hover:opacity-100">⭐</button>
+            <button type="button" onclick="setRating(1)" class="star-btn text-2xl opacity-100">⭐</button>
+            <button type="button" onclick="setRating(2)" class="star-btn text-2xl opacity-100">⭐</button>
+            <button type="button" onclick="setRating(3)" class="star-btn text-2xl opacity-100">⭐</button>
+            <button type="button" onclick="setRating(4)" class="star-btn text-2xl opacity-100">⭐</button>
             <button type="button" onclick="setRating(5)" class="star-btn text-2xl opacity-100">⭐</button>
           </div>
         </div>
 
-        <!-- PERFIL ACADÊMICO / ACESSIBILIDADE (VOLUNTÁRIO E ANÔNIMO) -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label class="block font-bold mb-1">Curso / Área (Opcional):</label>
@@ -657,7 +641,6 @@
           </div>
         </div>
 
-        <!-- RELATO QUALITATIVO -->
         <div>
           <label class="block font-bold mb-1">O que achou ou o que podemos melhorar?</label>
           <textarea id="fb-comment" required rows="3" placeholder="Conte como o leitor ajudou nos estudos do AVA ou sugira uma melhoria..."
@@ -678,24 +661,37 @@
     </div>
   </div>
 
-  <!-- SCRIPT PRINCIPAL DO ESTÚDIO DOCUMENTAL V3 -->
+  <!-- =========================================================
+       MODAL 3: INSTRUÇÕES PARA INSTALAR O PWA (QUANDO NÃO DISPARAR NATIVO)
+  ========================================================== -->
+  <div id="pwa-install-modal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-extrabold">📲 Instalar Aplicativo no Celular</h2>
+        <button type="button" onclick="toggleModal('pwa-install-modal', false)" class="text-2xl font-bold px-2">&times;</button>
+      </div>
+      <div class="space-y-3 text-xs sm:text-sm" style="color: var(--text-muted);">
+        <p><strong class="text-emerald-400">No Android (Google Chrome):</strong> Toque nos <strong>3 pontinhos (⋮)</strong> no canto superior direito do navegador e selecione <strong>"Instalar aplicativo"</strong> ou <strong>"Adicionar à tela inicial"</strong>.</p>
+        <p><strong class="text-cyan-400">No iPhone (Safari):</strong> Toque no ícone de <strong>Compartilhar (quadrado com seta para cima)</strong> na barra inferior e escolha <strong>"Adicionar à Tela de Início"</strong>.</p>
+        <p class="text-xs">Depois de instalado, o ícone <strong>EB</strong> aparece na sua tela e o leitor funciona 100% offline sem gastar internet.</p>
+      </div>
+      <button type="button" onclick="toggleModal('pwa-install-modal', false)" class="w-full py-2.5 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs">Entendi</button>
+    </div>
+  </div>
+
+  <!-- SCRIPT PRINCIPAL DO ESTÚDIO DOCUMENTAL V3.1 (ZERO ERROS DE SINTAXE) -->
   <script>
-    // Configurar PDF.js Worker
     if (window.pdfjsLib) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     }
 
-    // Estado Global
-    let docBlocks = [
-      {
-        label: 'Página 1',
-        text: "Bem-vindo ao Leitor Universal e Estúdio Documental PWA!
+    const WELCOME_TEXT = [
+      "Bem-vindo ao Leitor Universal e Estúdio Documental PWA!",
+      "Este aplicativo foi criado para você ler livros-texto, apostilas do AVA, documentos Word e anotações de forma 100% gratuita, sem limite de páginas e mesmo quando estiver sem internet.",
+      "Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leitura contínua a partir daquele exato ponto. Use os controles na barra inferior para avançar, voltar ou acelerar a voz, ou abra o Painel de Acessibilidade no topo para adaptar cores, tamanho da letra e comandos por voz."
+    ].join("\n\n");
 
-Este aplicativo foi criado para você ler livros-texto, apostilas do AVA, documentos Word e anotações de forma 100% gratuita, sem limite de páginas e mesmo quando estiver sem internet.
-
-Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leitura contínua a partir daquele exato ponto. Use os controles na barra inferior para avançar, voltar ou acelerar a voz, ou abra o Painel de Acessibilidade no topo para adaptar cores, tamanho da letra e comandos por voz."
-      }
-    ];
+    let docBlocks = [{ label: 'Página 1', text: WELCOME_TEXT }];
     let currentBlockIndex = 0;
     let currentParagraphIndex = 0;
     let currentFileName = 'Leitura_Estudio_AVA';
@@ -707,35 +703,54 @@ Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leit
     let isRecording = false;
     let voiceCmdRecognition = null;
     let isVoiceCmdActive = false;
+    let deferredInstallPrompt = null;
 
-    // Endpoint gratuito direto para edwin.balera@gmail.com (sem servidor)
     const FEEDBACK_ENDPOINT = 'https://formsubmit.co/ajax/edwin.balera@gmail.com';
 
+    // Captura o prompt nativo de instalação PWA do Chrome/Android
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      const btn = document.getElementById('btn-install-pwa');
+      if (btn) btn.innerHTML = '<span>📲 Baixar App PWA</span>';
+    });
+
+    async function installPWAApp() {
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        const choice = await deferredInstallPrompt.userChoice;
+        if (choice.outcome === 'accepted') {
+          deferredInstallPrompt = null;
+        }
+      } else {
+        toggleModal('pwa-install-modal', true);
+      }
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
-      loadA11yPrefs();
+      try { loadA11yPrefs(); } catch (e) {}
       renderCurrentBlock();
       populateVoices();
-      if (speechSynthesis.onvoiceschanged !== undefined) {
+      if (window.speechSynthesis && speechSynthesis.onvoiceschanged !== undefined) {
         speechSynthesis.onvoiceschanged = populateVoices;
       }
       updateOnlineBadge();
       window.addEventListener('online', () => { updateOnlineBadge(); flushOfflineTelemetryQueue(); });
       window.addEventListener('offline', updateOnlineBadge);
 
-      // Registrar Service Worker para Modo Offline-First
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js').catch(err => console.warn('SW registro:', err));
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
       }
 
-      // Iniciar monitoramento silencioso de engajamento (1 minuto)
       initSilentEngagementTelemetry();
       flushOfflineTelemetryQueue();
     });
 
     function updateOnlineBadge() {
       const badge = document.getElementById('net-status-badge');
+      if (!badge) return;
       if (navigator.onLine) {
-        badge.textContent = 'V3 PWA • Online & Cache Ativo';
+        badge.textContent = 'V3.1 PWA • Online & Cache Ativo';
         badge.className = 'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
       } else {
         badge.textContent = 'Modo Offline Ativo (Sem Internet)';
@@ -743,9 +758,7 @@ Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leit
       }
     }
 
-    // =========================================================
     // NAVEGAÇÃO DE ABAS E MODAIS
-    // =========================================================
     function switchTab(tab) {
       const studio = document.getElementById('view-studio');
       const about = document.getElementById('view-about');
@@ -769,15 +782,15 @@ Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leit
 
     function toggleModal(id, show) {
       const el = document.getElementById(id);
+      if (!el) return;
       if (show) el.classList.remove('hidden');
       else el.classList.add('hidden');
     }
 
-    // =========================================================
-    // IMPORTAÇÃO UNIVERSAL (PDF, WORD .DOCX, TXT, MÍDIA)
-    // =========================================================
+    // IMPORTAÇÃO UNIVERSAL DE ARQUIVOS
     function setProgress(show, label = '', pct = 0) {
       const box = document.getElementById('progress-box');
+      if (!box) return;
       if (!show) { box.classList.add('hidden'); return; }
       box.classList.remove('hidden');
       document.getElementById('progress-label').textContent = label;
@@ -786,36 +799,46 @@ Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leit
     }
 
     async function handleFileUpload(event) {
-      const file = event.target.files[0];
+      const file = event.target.files && event.target.files[0];
       if (!file) return;
+
       stopNarration();
       currentFileName = file.name.replace(/\.[^/.]+$/, '');
       document.getElementById('doc-title').textContent = file.name;
       document.getElementById('media-preview-box').classList.add('hidden');
+      setProgress(true, 'Iniciando leitura de ' + file.name + '...', 10);
 
       const ext = file.name.split('.').pop().toLowerCase();
 
       try {
-        if (ext === 'pdf') {
+        if (ext === 'pdf' || file.type === 'application/pdf') {
           await extractPDF(file);
         } else if (ext === 'docx') {
           await extractDOCX(file);
-        } else if (ext === 'txt' || ext === 'md') {
+        } else if (ext === 'txt' || ext === 'md' || file.type.startsWith('text/')) {
           const text = await file.text();
           loadPlainTextIntoBlocks(text, 'Seção');
+          setProgress(false);
         } else if (file.type.startsWith('audio/') || file.type.startsWith('video/')) {
           prepareMediaFile(file);
+          setProgress(false);
         } else {
+          setProgress(false);
           alert('Formato não suportado. Selecione PDF, DOCX, TXT, MD, Áudio ou Vídeo.');
         }
       } catch (err) {
-        alert('Erro ao abrir o arquivo: ' + err.message);
+        console.error(err);
         setProgress(false);
+        alert('Não foi possível ler este arquivo: ' + (err.message || err));
+      } finally {
+        event.target.value = '';
       }
     }
 
     async function extractPDF(file) {
-      setProgress(true, 'Abrindo PDF no aparelho...', 5);
+      if (!window.pdfjsLib) {
+        throw new Error('O leitor de PDF ainda está carregando. Aguarde 3 segundos e tente novamente.');
+      }
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       const total = pdf.numPages;
@@ -824,7 +847,6 @@ Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leit
       for (let i = 1; i <= total; i++) {
         const page = await pdf.getPage(i);
         const content = await page.getTextContent();
-        // Reconstruir quebras de parágrafo pela posição vertical (transform[5])
         let lastY = null;
         let lines = [];
         let currentLine = '';
@@ -841,7 +863,7 @@ Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leit
         });
         if (currentLine.trim()) lines.push(currentLine.trim());
 
-        const pageText = lines.join('\n\n') || '[Página sem texto selecionável]';
+        const pageText = lines.join('\n\n') || '[Página escaneada como imagem — sem camada de texto selecionável]';
         docBlocks.push({ label: `Página ${i}`, text: pageText });
         setProgress(true, `Lendo página ${i} de ${total}...`, (i / total) * 100);
       }
@@ -853,7 +875,10 @@ Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leit
     }
 
     async function extractDOCX(file) {
-      setProgress(true, 'Extraindo texto do Word (.docx)...', 45);
+      if (!window.mammoth) {
+        throw new Error('O leitor de Word ainda está carregando. Aguarde 3 segundos.');
+      }
+      setProgress(true, 'Extraindo texto do Word (.docx)...', 50);
       const arrayBuffer = await file.arrayBuffer();
       const result = await mammoth.extractRawText({ arrayBuffer });
       loadPlainTextIntoBlocks(result.value, 'Bloco');
@@ -861,9 +886,9 @@ Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leit
     }
 
     function loadPlainTextIntoBlocks(fullText, prefix = 'Bloco') {
-      const clean = fullText.trim();
+      const clean = (fullText || '').trim();
       if (!clean) {
-        docBlocks = [{ label: `${prefix} 1`, text: '' }];
+        docBlocks = [{ label: `${prefix} 1`, text: '[Arquivo vazio]' }];
       } else {
         const chunkSize = 3000;
         docBlocks = [];
@@ -897,15 +922,12 @@ Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leit
       }
     }
 
-    // =========================================================
-    // RENDERIZAÇÃO DE PARÁGRAFOS CLICÁVEIS & TOQUE PARA LER
-    // =========================================================
+    // PARÁGRAFOS CLICÁVEIS & TOQUE PARA LER
     function getParagraphsFromCurrentBlock() {
       if (!docBlocks[currentBlockIndex]) return [];
       const raw = docBlocks[currentBlockIndex].text;
       let parts = raw.split(/\n+/).map(p => p.trim()).filter(p => p.length > 0);
       if (parts.length <= 1 && raw.length > 450) {
-        // Quebrar blocos muito longos por sentenças para facilitar o toque
         parts = raw.match(/[^.!?]+[.!?]+(\s|$)|[^.!?]+$/g) || [raw];
         parts = parts.map(s => s.trim()).filter(Boolean);
       }
@@ -940,7 +962,7 @@ Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leit
     }
 
     function escapeHtml(str) {
-      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
     function toggleEditMode() {
@@ -997,10 +1019,9 @@ Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leit
       renderCurrentBlock();
     }
 
-    // =========================================================
-    // NARRADOR CONTÍNUO POR PARÁGRAFO (WEB SPEECH API)
-    // =========================================================
+    // NARRADOR CONTÍNUO POR PARÁGRAFO
     function populateVoices() {
+      if (!window.speechSynthesis) return;
       const select = document.getElementById('voice-select');
       const voices = speechSynthesis.getVoices();
       if (!voices.length) return;
@@ -1019,6 +1040,10 @@ Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leit
     }
 
     function startNarrationFromParagraph(pIdx) {
+      if (!window.speechSynthesis) {
+        alert('Seu navegador não suporta leitura em voz alta.');
+        return;
+      }
       speechSynthesis.cancel();
       isPaused = false;
       isNarrating = true;
@@ -1041,7 +1066,6 @@ Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leit
 
       const paragraphs = getParagraphsFromCurrentBlock();
       if (pIdx >= paragraphs.length) {
-        // Avança automaticamente para a próxima página
         speakParagraphSequence(blockIdx + 1, 0);
         return;
       }
@@ -1123,13 +1147,14 @@ Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leit
       isNarrating = false;
       isPaused = false;
       document.body.classList.remove('is-narrating');
-      speechSynthesis.cancel();
+      if (window.speechSynthesis) speechSynthesis.cancel();
       document.querySelectorAll('.reader-paragraph').forEach(el => el.classList.remove('speaking-active'));
       updatePlayPauseButton();
     }
 
     function updatePlayPauseButton() {
       const btn = document.getElementById('btn-play-pause');
+      if (!btn) return;
       if (isNarrating && !isPaused) {
         btn.innerHTML = '⏸️ Pausar';
         btn.className = 'px-4 py-2 rounded-xl bg-amber-400 text-slate-950 text-xs sm:text-sm font-extrabold shadow transition';
@@ -1148,7 +1173,6 @@ Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leit
       }
     }
 
-    // Tradução estrutural GLOSA para comunidade surda
     function toggleGlosaCurrentBlock() {
       const container = document.getElementById('paragraphs-container');
       let existing = container.querySelector('.glosa-box');
@@ -1165,9 +1189,7 @@ Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leit
       container.prepend(box);
     }
 
-    // =========================================================
-    // BUSCA & SÍNTESE 100% OFFLINE (ZERO API)
-    // =========================================================
+    // BUSCA & SÍNTESE 100% OFFLINE
     function runOfflineSearch() {
       const query = document.getElementById('offline-search-input').value.trim().toLowerCase();
       const box = document.getElementById('search-results-box');
@@ -1206,7 +1228,6 @@ Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leit
         return;
       }
 
-      // Algoritmo extrativo local por frequência de termos relevantes
       const words = fullText.toLowerCase().match(/\b[a-záéíóúâêôãõç]{5,}\b/g) || [];
       const freq = {};
       words.forEach(w => freq[w] = (freq[w] || 0) + 1);
@@ -1237,7 +1258,7 @@ Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leit
       box.innerHTML = `<div class="p-3 rounded-xl surface-box">
         <div class="font-bold text-cyan-400 mb-2">🔑 Conceitos-Chave do Documento</div>
         <div class="flex flex-wrap gap-1.5">
-          ${top.map(([word, count]) => `<button onclick="document.getElementById('offline-search-input').value='${word}'; runOfflineSearch();" class="px-2 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 font-semibold">${word} (${count})</button>`).join('')}
+          ${top.map(([word, count]) => `<button type="button" onclick="document.getElementById('offline-search-input').value='${word}'; runOfflineSearch();" class="px-2 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 font-semibold">${word} (${count})</button>`).join('')}
         </div>
       </div>`;
     }
@@ -1251,9 +1272,7 @@ Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leit
       }
     }
 
-    // =========================================================
     // DITADO POR VOZ & EXPORTAÇÃO PDF / TXT
-    // =========================================================
     function toggleSpeechRecognition() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) { alert('Ditado por voz não suportado neste navegador.'); return; }
@@ -1313,9 +1332,7 @@ Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leit
       a.click();
     }
 
-    // =========================================================
-    // PAINEL DE ACESSIBILIDADE ADAPTATIVA (4 EIXOS)
-    // =========================================================
+    // PAINEL DE ACESSIBILIDADE ADAPTATIVA
     function setTheme(themeName) {
       document.body.classList.remove('theme-light', 'theme-sepia', 'theme-green', 'theme-blue', 'theme-pink', 'theme-high-contrast');
       if (themeName && themeName !== 'dark') {
@@ -1390,6 +1407,7 @@ Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leit
     }
 
     function readAccessibilitySummary() {
+      if (!window.speechSynthesis) return;
       speechSynthesis.cancel();
       const utt = new SpeechSynthesisUtterance('Painel de Acessibilidade Adaptativa. Aqui você pode ativar alto contraste para daltonismo, aumentar o tamanho da fonte, reduzir o brilho ocular, ativar foco para TDAH, espelhar texto, ampliar botões motores ou controlar a leitura por comandos de voz.');
       utt.lang = 'pt-BR';
@@ -1437,9 +1455,7 @@ Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leit
       location.reload();
     }
 
-    // =========================================================
     // TELEMETRIA SILENCIOSA (1 MINUTO) + FEEDBACK CIENTÍFICO
-    // =========================================================
     function getAnonymousUserId() {
       let uid = localStorage.getItem('eb_anon_uid');
       if (!uid) {
@@ -1450,7 +1466,6 @@ Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leit
     }
 
     function initSilentEngagementTelemetry() {
-      // Dispara apenas uma vez por sessão após 60 segundos de permanência ativa
       if (sessionStorage.getItem('eb_1min_ping_sent')) return;
 
       setTimeout(() => {
@@ -1500,7 +1515,7 @@ Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leit
       btn.textContent = 'Enviar Feedback Direto';
       document.getElementById('fb-comment').value = '';
       toggleModal('feedback-modal', false);
-      alert('Obrigado! Seu feedback foi registrado com sucesso (se estiver sem internet agora, ele será enviado automaticamente assim que você reconectar).');
+      alert('Obrigado! Seu feedback foi registrado com sucesso.');
     }
 
     async function sendOrQueueTelemetry(payload) {
@@ -1548,7 +1563,7 @@ Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leit
     }
   </script>
 
-  <!-- VERCEL WEB ANALYTICS (TRÁFEGO REAL) -->
+  <!-- VERCEL WEB ANALYTICS -->
   <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
