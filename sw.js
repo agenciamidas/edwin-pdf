@@ -1,4 +1,4 @@
-const CACHE_NAME = 'estudio-leitor-ia-v3.2.0';
+const CACHE_NAME = 'estudio-leitor-ia-v3.3.0';
 
 const STATIC_ASSETS = [
   '/',
