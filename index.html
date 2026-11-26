@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-  <title>Estúdio Documental & Leitor IA — Edwin Balera (V3.2 PWA)</title>
+  <title>Estúdio Documental & Leitor IA — Edwin Balera (V3.3 PWA)</title>
   <meta name="theme-color" content="#090d16" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="description" content="Leitor gratuito e ilimitado de PDFs, Word e Áudio/Vídeo para estudantes, com Acessibilidade Adaptativa e modo Offline-First." />
+  <meta name="description" content="Leitor gratuito e ilimitado de PDFs, Word e Áudio/Vídeo para estudantes, com Acessibilidade Adaptativa, Voz e Rastreamento Facial." />
 
   <!-- Manifest & Ícones Nativos PWA -->
   <link rel="manifest" href="/manifest.json" />
@@ -21,6 +21,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
   <!-- jsPDF para exportação paginada em PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- MediaPipe Face Mesh (Leve, carregado apenas ao ativar câmera facial) -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -148,9 +150,10 @@
       margin-bottom: 10px;
     }
 
-    .reader-paragraph:hover {
-      background-color: rgba(16, 185, 129, 0.1);
-      border-color: var(--border-main);
+    .reader-paragraph:hover, .face-hover-target {
+      background-color: rgba(16, 185, 129, 0.14) !important;
+      border-color: var(--accent-secondary) !important;
+      outline: 2px solid var(--accent-secondary);
     }
 
     .reader-paragraph.speaking-active {
@@ -216,11 +219,51 @@
       font-size: 0.8rem;
       font-weight: 600;
     }
+
+    /* CURSOR FACIAL GUIADO PELA PONTA DO NARIZ */
+    #face-cursor {
+      position: fixed;
+      width: 28px;
+      height: 28px;
+      border-radius: 9999px;
+      border: 3px solid #22d3ee;
+      background: rgba(16, 185, 129, 0.35);
+      box-shadow: 0 0 18px rgba(34, 211, 238, 0.9);
+      pointer-events: none;
+      z-index: 10000;
+      transform: translate(-50%, -50%);
+      transition: transform 0.08s linear, background-color 0.15s ease;
+    }
+    #face-cursor.clicking {
+      background: #f59e0b;
+      border-color: #ffffff;
+      transform: translate(-50%, -50%) scale(1.45);
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col pb-28">
 
   <div id="brightness-overlay"></div>
+
+  <!-- CURSOR VIRTUAL DO RASTREAMENTO FACIAL -->
+  <div id="face-cursor" class="hidden" style="left: 50vw; top: 50vh;"></div>
+
+  <!-- MONITOR FLUTUANTE DA CÂMERA FACIAL -->
+  <div id="face-hud" class="hidden fixed top-16 right-3 z-50 glass rounded-2xl p-2.5 w-44 shadow-2xl text-[10px]">
+    <div class="relative rounded-xl overflow-hidden bg-black aspect-video mb-1.5">
+      <video id="face-video" autoplay playsinline muted class="w-full h-full object-cover scale-x-[-1]"></video>
+      <span id="face-action-badge" class="absolute bottom-1 left-1 right-1 bg-black/75 text-cyan-300 font-bold px-1.5 py-0.5 rounded text-center truncate">
+        Calibrando rosto...
+      </span>
+    </div>
+    <div class="flex justify-between items-center gap-1">
+      <span style="color: var(--text-muted);">Nariz • Olho • Boca</span>
+      <button type="button" onclick="stopFaceTracking()" class="px-2 py-0.5 rounded bg-rose-500 text-white font-bold">Sair</button>
+    </div>
+  </div>
+
+  <!-- TOAST DE FEEDBACK DE VOZ / CÂMERA -->
+  <div id="live-toast" class="hidden fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-slate-900/95 border border-emerald-500/50 text-emerald-300 text-xs font-bold shadow-xl"></div>
 
   <!-- CABEÇALHO PRINCIPAL -->
   <header class="sticky top-0 z-40 glass px-4 py-3 border-b" style="border-color: var(--border-main);">
@@ -234,10 +277,10 @@
           <div class="flex items-center gap-2 flex-wrap">
             <h1 class="font-bold text-base sm:text-lg leading-tight">Leitor & Estúdio IA</h1>
             <span id="net-status-badge" class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-              V3.2 PWA • Pronto Offline
+              V3.3 PWA • Pronto Offline
             </span>
           </div>
-          <p class="text-xs" style="color: var(--text-muted);">Leitura Ilimitada AVA • Toque no Parágrafo • Inclusão Total</p>
+          <p class="text-xs" style="color: var(--text-muted);">Leitura Ilimitada AVA • Voz & Câmera Facial • Inclusão Total</p>
         </div>
       </div>
 
@@ -570,7 +613,7 @@
         </div>
 
         <div class="space-y-3">
-          <h3 class="font-bold uppercase tracking-wider text-xs text-amber-400">3. Eixo Motor & Mãos Livres (Hands-Free)</h3>
+          <h3 class="font-bold uppercase tracking-wider text-xs text-amber-400">3. Eixo Motor & Mãos Livres (Câmera Facial + Voz)</h3>
           <label class="flex items-center gap-2.5 p-3 rounded-xl surface-box cursor-pointer">
             <input type="checkbox" id="chk-large-targets" onchange="toggleBodyClass('large-targets', this.checked)" class="w-4 h-4 accent-emerald-500" />
             <span><strong>Botões Ampliados:</strong> Aumenta a área de toque para facilitar o uso com tremores ou baixa precisão motora.</span>
@@ -580,9 +623,31 @@
             <button type="button" onclick="setOneHandMode('one-hand-left')" class="p-2.5 rounded-xl surface-box font-semibold text-xs">👈 Mão Esquerda</button>
             <button type="button" onclick="setOneHandMode('one-hand-right')" class="p-2.5 rounded-xl surface-box font-semibold text-xs">👉 Mão Direita</button>
           </div>
-          <button type="button" id="btn-voice-commands" onclick="toggleVoiceControlCommands()" class="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition">
-            🎙️ Ativar Controle por Voz ("Ler", "Pausar", "Próximo", "Voltar", "Mais rápido")
-          </button>
+
+          <!-- CONTROLE POR CÂMERA FACIAL (NARIZ, CABEÇA, OLHOS E BOCA) -->
+          <div class="p-3.5 rounded-2xl surface-box space-y-2 border border-cyan-500/40">
+            <div class="font-bold text-xs text-cyan-400">📷 Navegação Facial Hands-Free (Sem Usar as Mãos)</div>
+            <p class="text-[11px]" style="color: var(--text-muted);">
+              • <strong>Ponta do Nariz / Cabeça:</strong> Move o cursor na tela<br/>
+              • <strong>Inclinar Cabeça (Cima/Baixo):</strong> Rola a página e o texto<br/>
+              • <strong>Piscar Longo (0,7s):</strong> Clica onde o cursor aponta<br/>
+              • <strong>Abrir a Boca:</strong> Inicia ou Pausa a leitura contínua
+            </p>
+            <button type="button" id="btn-face-tracking" onclick="toggleFaceTracking()" class="w-full py-3 px-4 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-xs transition shadow">
+              👁️ Ativar Controle por Câmera Facial
+            </button>
+          </div>
+
+          <!-- CONTROLE POR VOZ APRIMORADO -->
+          <div class="p-3.5 rounded-2xl surface-box space-y-2 border border-indigo-500/40">
+            <div class="font-bold text-xs text-indigo-300">🎙️ Comandos de Voz (Tempo Real)</div>
+            <p class="text-[11px]" style="color: var(--text-muted);">
+              Diga: <strong>"Ler"</strong>, <strong>"Pausar / Parar"</strong>, <strong>"Próximo / Avançar"</strong>, <strong>"Voltar / Anterior"</strong>, <strong>"Mais rápido / Mais devagar"</strong>, <strong>"Descer / Subir"</strong>.
+            </p>
+            <button type="button" id="btn-voice-commands" onclick="toggleVoiceControlCommands()" class="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition">
+              🎙️ Ativar Controle por Voz
+            </button>
+          </div>
         </div>
 
         <div class="space-y-2">
@@ -680,7 +745,7 @@
     </div>
   </div>
 
-  <!-- SCRIPT PRINCIPAL DO ESTÚDIO DOCUMENTAL V3.2 -->
+  <!-- SCRIPT PRINCIPAL DO ESTÚDIO DOCUMENTAL V3.3 -->
   <script>
     if (window.pdfjsLib) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -689,7 +754,7 @@
     const WELCOME_TEXT = [
       "Bem-vindo ao Leitor Universal e Estúdio Documental PWA!",
       "Este aplicativo foi criado para você ler livros-texto, apostilas do AVA, documentos Word e anotações de forma 100% gratuita, sem limite de páginas e mesmo quando estiver sem internet.",
-      "Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leitura contínua a partir daquele exato ponto. Use os controles na barra inferior para avançar, voltar ou acelerar a voz, ou abra o Painel de Acessibilidade no topo para adaptar cores, tamanho da letra e comandos por voz."
+      "Toque diretamente em qualquer parágrafo desta tela para começar a ouvir a leitura contínua a partir daquele exato ponto. Use os controles na barra inferior para avançar, voltar ou acelerar a voz, ou abra o Painel de Acessibilidade no topo para ativar o Controle por Voz e o Rastreamento Facial pela câmera."
     ].join("\n\n");
 
     let docBlocks = [{ label: 'Página 1', text: WELCOME_TEXT }];
@@ -704,9 +769,19 @@
     let isRecording = false;
     let voiceCmdRecognition = null;
     let isVoiceCmdActive = false;
+    let lastVoiceCmdTime = 0;
     let deferredInstallPrompt = null;
 
     const FEEDBACK_ENDPOINT = 'https://formsubmit.co/ajax/edwin.balera@gmail.com';
+
+    function showLiveToast(msg) {
+      const t = document.getElementById('live-toast');
+      if (!t) return;
+      t.textContent = msg;
+      t.classList.remove('hidden');
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => t.classList.add('hidden'), 2600);
+    }
 
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
@@ -754,7 +829,7 @@
       const badge = document.getElementById('net-status-badge');
       if (!badge) return;
       if (navigator.onLine) {
-        badge.textContent = 'V3.2 PWA • Online & Cache Ativo';
+        badge.textContent = 'V3.3 PWA • Online & Cache Ativo';
         badge.className = 'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
       } else {
         badge.textContent = 'Modo Offline Ativo (Sem Internet)';
@@ -837,14 +912,11 @@
       }
     }
 
-    // Reconstrução inteligente de texto PDF (corrige espaçamento de caracteres isolados como "p e r í o d o")
     function cleanPDFLineSpacing(rawLine) {
       let cleaned = rawLine.replace(/\s+/g, ' ').trim();
-      // Junta letras isoladas separadas por espaço único quando há sequência de 3+ letras soltas
       cleaned = cleaned.replace(/(?:\b[A-Za-zÀ-ÖØ-öø-ÿçÇ]\s){2,}[A-Za-zÀ-ÖØ-öø-ÿçÇ]\b/g, (match) => {
         return match.replace(/\s+/g, '');
       });
-      // Remove espaço indevido antes de pontuação
       cleaned = cleaned.replace(/\s+([,.;:!?])/g, '$1');
       return cleaned;
     }
@@ -1347,6 +1419,9 @@
       a.click();
     }
 
+    // =========================================================
+    // PAINEL DE ACESSIBILIDADE ADAPTATIVA
+    // =========================================================
     function setTheme(themeName) {
       document.body.classList.remove('theme-light', 'theme-sepia', 'theme-green', 'theme-blue', 'theme-pink', 'theme-high-contrast');
       if (themeName && themeName !== 'dark') {
@@ -1390,6 +1465,9 @@
       localStorage.setItem('eb_a11y_hand', mode);
     }
 
+    // =========================================================
+    // CONTROLE POR VOZ APRIMORADO (TEMPO REAL + DICIONÁRIO AMPLO)
+    // =========================================================
     function toggleVoiceControlCommands() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) { alert('Comandos de voz não suportados neste navegador.'); return; }
@@ -1397,33 +1475,279 @@
 
       if (isVoiceCmdActive && voiceCmdRecognition) {
         isVoiceCmdActive = false;
-        voiceCmdRecognition.stop();
-        btn.textContent = '🎙️ Ativar Controle por Voz ("Ler", "Pausar", "Próximo", "Voltar", "Mais rápido")';
+        try { voiceCmdRecognition.stop(); } catch (e) {}
+        btn.textContent = '🎙️ Ativar Controle por Voz';
+        showLiveToast('🎙️ Controle por voz desativado.');
         return;
       }
 
       voiceCmdRecognition = new SpeechRecognition();
       voiceCmdRecognition.lang = 'pt-BR';
       voiceCmdRecognition.continuous = true;
+      voiceCmdRecognition.interimResults = true;
+
       voiceCmdRecognition.onresult = (e) => {
-        const cmd = e.results[e.results.length - 1][0].transcript.toLowerCase();
-        if (cmd.includes('ler') || cmd.includes('continuar')) togglePlayPause();
-        else if (cmd.includes('pausar') || cmd.includes('parar')) stopNarration();
-        else if (cmd.includes('próximo') || cmd.includes('avançar')) stepParagraph(1);
-        else if (cmd.includes('voltar') || cmd.includes('anterior')) stepParagraph(-1);
-        else if (cmd.includes('mais rápido') || cmd.includes('acelerar')) changeSpeed(0.25);
-        else if (cmd.includes('mais devagar')) changeSpeed(-0.25);
+        const now = Date.now();
+        if (now - lastVoiceCmdTime < 950) return; // Evita disparo duplo na mesma palavra
+
+        const res = e.results[e.results.length - 1];
+        const cmd = res[0].transcript.toLowerCase().trim();
+
+        if (/\b(pausar|pausa|parar|para|silêncio|quieto|chega)\b/.test(cmd)) {
+          lastVoiceCmdTime = now;
+          stopNarration();
+          showLiveToast('🎙️ Voz: Leitura pausada');
+        } else if (/\b(ler|começar|iniciar|continuar|tocar|play)\b/.test(cmd)) {
+          lastVoiceCmdTime = now;
+          if (!isNarrating || isPaused) {
+            togglePlayPause();
+            showLiveToast('🎙️ Voz: Lendo');
+          }
+        } else if (/\b(próxima página|avançar página|pular página)\b/.test(cmd)) {
+          lastVoiceCmdTime = now;
+          changeBlock(1);
+          showLiveToast('🎙️ Voz: Próxima página');
+        } else if (/\b(página anterior|voltar página)\b/.test(cmd)) {
+          lastVoiceCmdTime = now;
+          changeBlock(-1);
+          showLiveToast('🎙️ Voz: Página anterior');
+        } else if (/\b(próximo|próxima|avançar|avança|pular|pula|frente)\b/.test(cmd)) {
+          lastVoiceCmdTime = now;
+          stepParagraph(1);
+          showLiveToast('🎙️ Voz: Próximo parágrafo');
+        } else if (/\b(voltar|volta|anterior|repetir|repete|trás)\b/.test(cmd)) {
+          lastVoiceCmdTime = now;
+          stepParagraph(-1);
+          showLiveToast('🎙️ Voz: Parágrafo anterior');
+        } else if (/\b(mais rápido|acelerar|acelera|rápido)\b/.test(cmd)) {
+          lastVoiceCmdTime = now;
+          changeSpeed(0.25);
+          showLiveToast('🎙️ Voz: Velocidade ' + speechRate + 'x');
+        } else if (/\b(mais devagar|desacelerar|devagar|lento)\b/.test(cmd)) {
+          lastVoiceCmdTime = now;
+          changeSpeed(-0.25);
+          showLiveToast('🎙️ Voz: Velocidade ' + speechRate + 'x');
+        } else if (/\b(descer|desce|rolar para baixo|baixo)\b/.test(cmd)) {
+          lastVoiceCmdTime = now;
+          scrollReaderBy(260);
+          showLiveToast('🎙️ Voz: Rolando para baixo');
+        } else if (/\b(subir|sobe|rolar para cima|cima)\b/.test(cmd)) {
+          lastVoiceCmdTime = now;
+          scrollReaderBy(-260);
+          showLiveToast('🎙️ Voz: Rolando para cima');
+        }
       };
-      voiceCmdRecognition.onend = () => { if (isVoiceCmdActive) voiceCmdRecognition.start(); };
+
+      voiceCmdRecognition.onend = () => {
+        if (isVoiceCmdActive) {
+          try { voiceCmdRecognition.start(); } catch (e) {}
+        }
+      };
+
       isVoiceCmdActive = true;
       voiceCmdRecognition.start();
-      btn.textContent = '🟢 Controle por Voz ATIVO (Diga: Ler, Pausar, Próximo, Voltar)';
+      btn.textContent = '🟢 Voz ATIVA (Diga: Ler, Pausar, Próximo, Voltar, Acelerar, Descer)';
+      showLiveToast('🎙️ Controle por voz ativado!');
+    }
+
+    function scrollReaderBy(deltaY) {
+      const box = document.getElementById('paragraphs-container');
+      if (box && box.scrollHeight > box.clientHeight) {
+        box.scrollBy({ top: deltaY, behavior: 'smooth' });
+      }
+      window.scrollBy({ top: deltaY, behavior: 'smooth' });
+    }
+
+    // =========================================================
+    // NAVEGAÇÃO FACIAL HANDS-FREE (NARIZ, CABEÇA, OLHOS E BOCA)
+    // =========================================================
+    let faceMeshInstance = null;
+    let faceVideoStream = null;
+    let isFaceTrackingActive = false;
+    let faceRafId = null;
+    let smoothCursorX = window.innerWidth / 2;
+    let smoothCursorY = window.innerHeight / 2;
+    let lastHoveredEl = null;
+    let eyesClosedSince = null;
+    let lastEyeClickTime = 0;
+    let lastMouthToggleTime = 0;
+
+    async function toggleFaceTracking() {
+      if (isFaceTrackingActive) {
+        stopFaceTracking();
+        return;
+      }
+
+      if (!window.FaceMesh) {
+        alert('O módulo de rastreamento facial ainda está carregando. Verifique sua conexão na primeira vez e tente novamente em 3 segundos.');
+        return;
+      }
+
+      const btn = document.getElementById('btn-face-tracking');
+      btn.disabled = true;
+      btn.textContent = '⏳ Iniciando câmera e sensores faciais...';
+
+      try {
+        faceVideoStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: 320, height: 240 },
+          audio: false
+        });
+
+        const videoEl = document.getElementById('face-video');
+        videoEl.srcObject = faceVideoStream;
+        await videoEl.play();
+
+        if (!faceMeshInstance) {
+          faceMeshInstance = new FaceMesh({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+          });
+          faceMeshInstance.setOptions({
+            maxNumFaces: 1,
+            refineLandmarks: false,
+            minDetectionConfidence: 0.55,
+            minTrackingConfidence: 0.55
+          });
+          faceMeshInstance.onResults(onFaceMeshResults);
+        }
+
+        isFaceTrackingActive = true;
+        document.getElementById('face-hud').classList.remove('hidden');
+        document.getElementById('face-cursor').classList.remove('hidden');
+        toggleModal('a11y-modal', false);
+        btn.disabled = false;
+        btn.textContent = '🔴 Desativar Câmera Facial';
+        showLiveToast('📷 Controle Facial Ativo: Mova o nariz, pisque longo para clicar ou abra a boca!');
+
+        const processLoop = async () => {
+          if (!isFaceTrackingActive) return;
+          if (videoEl.readyState >= 2) {
+            try { await faceMeshInstance.send({ image: videoEl }); } catch (e) {}
+          }
+          faceRafId = requestAnimationFrame(processLoop);
+        };
+        processLoop();
+
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = '👁️ Ativar Controle por Câmera Facial';
+        alert('Não foi possível acessar a câmera frontal: ' + (err.message || err));
+      }
+    }
+
+    function stopFaceTracking() {
+      isFaceTrackingActive = false;
+      if (faceRafId) cancelAnimationFrame(faceRafId);
+      if (faceVideoStream) {
+        faceVideoStream.getTracks().forEach(t => t.stop());
+        faceVideoStream = null;
+      }
+      document.getElementById('face-hud').classList.add('hidden');
+      document.getElementById('face-cursor').classList.add('hidden');
+      if (lastHoveredEl) lastHoveredEl.classList.remove('face-hover-target');
+      const btn = document.getElementById('btn-face-tracking');
+      if (btn) btn.textContent = '👁️ Ativar Controle por Câmera Facial';
+      showLiveToast('📷 Controle facial encerrado.');
+    }
+
+    function onFaceMeshResults(results) {
+      if (!isFaceTrackingActive) return;
+      const badge = document.getElementById('face-action-badge');
+      const cursor = document.getElementById('face-cursor');
+
+      if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
+        badge.textContent = 'Rosto não detectado';
+        return;
+      }
+
+      const lm = results.multiFaceLandmarks[0];
+      // 1. Ponta do nariz (landmark 1) -> Mapeia para tela inteira com ganho de sensibilidade
+      const nose = lm[1];
+      const normX = 1 - nose.x; // Espelhado como espelho
+      const normY = nose.y;
+
+      const sensitivityX = 2.6;
+      const sensitivityY = 2.6;
+      const targetX = Math.min(window.innerWidth - 14, Math.max(14, ((normX - 0.5) * sensitivityX + 0.5) * window.innerWidth));
+      const targetY = Math.min(window.innerHeight - 14, Math.max(14, ((normY - 0.5) * sensitivityY + 0.5) * window.innerHeight));
+
+      smoothCursorX += (targetX - smoothCursorX) * 0.25;
+      smoothCursorY += (targetY - smoothCursorY) * 0.25;
+
+      cursor.style.left = smoothCursorX + 'px';
+      cursor.style.top = smoothCursorY + 'px';
+
+      // Destacar elemento sob o cursor do nariz
+      const elUnder = document.elementFromPoint(smoothCursorX, smoothCursorY);
+      const interactive = elUnder ? elUnder.closest('button, a, select, input, label, .reader-paragraph') : null;
+      if (lastHoveredEl && lastHoveredEl !== interactive) {
+        lastHoveredEl.classList.remove('face-hover-target');
+      }
+      if (interactive) {
+        interactive.classList.add('face-hover-target');
+        lastHoveredEl = interactive;
+      } else {
+        lastHoveredEl = null;
+      }
+
+      // 2. Inclinação vertical da cabeça (rolagem automática nas bordas superior/inferior)
+      if (normY > 0.66) {
+        scrollReaderBy(14);
+        badge.textContent = '⬇️ Rolando para baixo';
+      } else if (normY < 0.34) {
+        scrollReaderBy(-14);
+        badge.textContent = '⬆️ Rolando para cima';
+      } else {
+        badge.textContent = '🎯 Nariz ativo';
+      }
+
+      // 3. Medida de abertura dos olhos (piscada longa ~0.7s = Clique)
+      const faceHeight = Math.abs(lm[152].y - lm[10].y) || 0.3;
+      const leftEyeOpen = Math.abs(lm[159].y - lm[145].y) / faceHeight;
+      const rightEyeOpen = Math.abs(lm[386].y - lm[374].y) / faceHeight;
+      const avgEye = (leftEyeOpen + rightEyeOpen) / 2;
+
+      const now = Date.now();
+      if (avgEye < 0.017) {
+        if (!eyesClosedSince) eyesClosedSince = now;
+        const closedDuration = now - eyesClosedSince;
+        badge.textContent = `👁️ Segurando piscada (${(closedDuration / 1000).toFixed(1)}s)`;
+        if (closedDuration >= 680 && now - lastEyeClickTime > 1400) {
+          lastEyeClickTime = now;
+          eyesClosedSince = null;
+          triggerFaceClick(interactive);
+        }
+      } else {
+        eyesClosedSince = null;
+      }
+
+      // 4. Abertura da boca (boca aberta ampla = Play / Pause leitura contínua)
+      const mouthOpen = Math.abs(lm[14].y - lm[13].y) / faceHeight;
+      if (mouthOpen > 0.095 && now - lastMouthToggleTime > 1800) {
+        lastMouthToggleTime = now;
+        badge.textContent = '👄 Boca: Play/Pause';
+        togglePlayPause();
+        showLiveToast('👄 Boca detectada: Alternando leitura!');
+      }
+    }
+
+    function triggerFaceClick(targetEl) {
+      const cursor = document.getElementById('face-cursor');
+      cursor.classList.add('clicking');
+      setTimeout(() => cursor.classList.remove('clicking'), 280);
+
+      if (targetEl) {
+        targetEl.click();
+        showLiveToast('👁️ Piscada: Item acionado!');
+      } else {
+        togglePlayPause();
+        showLiveToast('👁️ Piscada: Play / Pause');
+      }
     }
 
     function readAccessibilitySummary() {
       if (!window.speechSynthesis) return;
       speechSynthesis.cancel();
-      const utt = new SpeechSynthesisUtterance('Painel de Acessibilidade Adaptativa. Aqui você pode ativar alto contraste para daltonismo, aumentar o tamanho da fonte, reduzir o brilho ocular, ativar foco para TDAH, espelhar texto, ampliar botões motores ou controlar a leitura por comandos de voz.');
+      const utt = new SpeechSynthesisUtterance('Painel de Acessibilidade Adaptativa. Aqui você pode ativar alto contraste para daltonismo, aumentar o tamanho da fonte, reduzir o brilho ocular, ativar foco para TDAH, ativar o controle por voz em tempo real ou ligar a câmera facial para mover o cursor com o nariz, rolar a tela com a cabeça, clicar piscando os olhos e pausar abrindo a boca.');
       utt.lang = 'pt-BR';
       speechSynthesis.speak(utt);
     }
@@ -1469,6 +1793,7 @@
       location.reload();
     }
 
+    // TELEMETRIA SILENCIOSA (1 MINUTO) + FEEDBACK CIENTÍFICO
     function getAnonymousUserId() {
       let uid = localStorage.getItem('eb_anon_uid');
       if (!uid) {
