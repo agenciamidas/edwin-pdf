@@ -3,14 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-  <title>Estúdio Documental & Leitor IA — Edwin Balera (V3.1 PWA)</title>
+  <title>Estúdio Documental & Leitor IA — Edwin Balera (V3.2 PWA)</title>
   <meta name="theme-color" content="#090d16" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="description" content="Leitor gratuito e ilimitado de PDFs, Word e Áudio/Vídeo para estudantes, com Acessibilidade Adaptativa e modo Offline-First." />
 
-  <!-- Manifest PWA Embutido (Habilita instalação nativa sem precisar de arquivo extra) -->
-  <link id="pwa-manifest" rel="manifest" href='data:application/manifest+json,{"name":"Leitor & Estúdio IA — Edwin Balera","short_name":"Leitor AVA","start_url":"./","display":"standalone","background_color":"#090d16","theme_color":"#10b981","icons":[{"src":"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 512 512%27%3E%3Crect width=%27512%27 height=%27512%27 rx=%27110%27 fill=%27%2310b981%27/%3E%3Ctext x=%2750%25%27 y=%2755%25%27 dominant-baseline=%27middle%27 text-anchor=%27middle%27 font-family=%27sans-serif%27 font-weight=%27900%27 font-size=%27220%27 fill=%27%23090d16%27%3EEB%3C/text%3E%3C/svg%3E","sizes":"512x512","type":"image/svg+xml","purpose":"any maskable"}]}' />
+  <!-- Manifest & Ícones Nativos PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -233,7 +234,7 @@
           <div class="flex items-center gap-2 flex-wrap">
             <h1 class="font-bold text-base sm:text-lg leading-tight">Leitor & Estúdio IA</h1>
             <span id="net-status-badge" class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-              V3.1 PWA • Pronto Offline
+              V3.2 PWA • Pronto Offline
             </span>
           </div>
           <p class="text-xs" style="color: var(--text-muted);">Leitura Ilimitada AVA • Toque no Parágrafo • Inclusão Total</p>
@@ -662,7 +663,7 @@
   </div>
 
   <!-- =========================================================
-       MODAL 3: INSTRUÇÕES PARA INSTALAR O PWA (QUANDO NÃO DISPARAR NATIVO)
+       MODAL 3: INSTRUÇÕES PARA INSTALAR O PWA
   ========================================================== -->
   <div id="pwa-install-modal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="glass rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
@@ -679,7 +680,7 @@
     </div>
   </div>
 
-  <!-- SCRIPT PRINCIPAL DO ESTÚDIO DOCUMENTAL V3.1 (ZERO ERROS DE SINTAXE) -->
+  <!-- SCRIPT PRINCIPAL DO ESTÚDIO DOCUMENTAL V3.2 -->
   <script>
     if (window.pdfjsLib) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -707,7 +708,6 @@
 
     const FEEDBACK_ENDPOINT = 'https://formsubmit.co/ajax/edwin.balera@gmail.com';
 
-    // Captura o prompt nativo de instalação PWA do Chrome/Android
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredInstallPrompt = e;
@@ -716,6 +716,10 @@
     });
 
     async function installPWAApp() {
+      if (window.matchMedia('(display-mode: standalone)').matches) {
+        alert('O aplicativo já está instalado e rodando nativamente no seu aparelho!');
+        return;
+      }
       if (deferredInstallPrompt) {
         deferredInstallPrompt.prompt();
         const choice = await deferredInstallPrompt.userChoice;
@@ -739,7 +743,7 @@
       window.addEventListener('offline', updateOnlineBadge);
 
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js').catch(() => {});
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
       }
 
       initSilentEngagementTelemetry();
@@ -750,7 +754,7 @@
       const badge = document.getElementById('net-status-badge');
       if (!badge) return;
       if (navigator.onLine) {
-        badge.textContent = 'V3.1 PWA • Online & Cache Ativo';
+        badge.textContent = 'V3.2 PWA • Online & Cache Ativo';
         badge.className = 'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
       } else {
         badge.textContent = 'Modo Offline Ativo (Sem Internet)';
@@ -758,7 +762,6 @@
       }
     }
 
-    // NAVEGAÇÃO DE ABAS E MODAIS
     function switchTab(tab) {
       const studio = document.getElementById('view-studio');
       const about = document.getElementById('view-about');
@@ -787,7 +790,6 @@
       else el.classList.add('hidden');
     }
 
-    // IMPORTAÇÃO UNIVERSAL DE ARQUIVOS
     function setProgress(show, label = '', pct = 0) {
       const box = document.getElementById('progress-box');
       if (!box) return;
@@ -835,6 +837,18 @@
       }
     }
 
+    // Reconstrução inteligente de texto PDF (corrige espaçamento de caracteres isolados como "p e r í o d o")
+    function cleanPDFLineSpacing(rawLine) {
+      let cleaned = rawLine.replace(/\s+/g, ' ').trim();
+      // Junta letras isoladas separadas por espaço único quando há sequência de 3+ letras soltas
+      cleaned = cleaned.replace(/(?:\b[A-Za-zÀ-ÖØ-öø-ÿçÇ]\s){2,}[A-Za-zÀ-ÖØ-öø-ÿçÇ]\b/g, (match) => {
+        return match.replace(/\s+/g, '');
+      });
+      // Remove espaço indevido antes de pontuação
+      cleaned = cleaned.replace(/\s+([,.;:!?])/g, '$1');
+      return cleaned;
+    }
+
     async function extractPDF(file) {
       if (!window.pdfjsLib) {
         throw new Error('O leitor de PDF ainda está carregando. Aguarde 3 segundos e tente novamente.');
@@ -848,20 +862,25 @@
         const page = await pdf.getPage(i);
         const content = await page.getTextContent();
         let lastY = null;
+        let lastX = null;
         let lines = [];
         let currentLine = '';
 
         content.items.forEach(item => {
           const y = item.transform ? item.transform[5] : 0;
+          const x = item.transform ? item.transform[4] : 0;
           if (lastY !== null && Math.abs(y - lastY) > 14) {
-            if (currentLine.trim()) lines.push(currentLine.trim());
+            if (currentLine.trim()) lines.push(cleanPDFLineSpacing(currentLine));
             currentLine = item.str;
           } else {
-            currentLine += (currentLine && !currentLine.endsWith(' ') ? ' ' : '') + item.str;
+            const gap = (lastX !== null) ? (x - lastX) : 0;
+            const needsSpace = currentLine && !currentLine.endsWith(' ') && !item.str.startsWith(' ') && gap > 2;
+            currentLine += (needsSpace ? ' ' : '') + item.str;
           }
           lastY = y;
+          lastX = x + (item.width || 0);
         });
-        if (currentLine.trim()) lines.push(currentLine.trim());
+        if (currentLine.trim()) lines.push(cleanPDFLineSpacing(currentLine));
 
         const pageText = lines.join('\n\n') || '[Página escaneada como imagem — sem camada de texto selecionável]';
         docBlocks.push({ label: `Página ${i}`, text: pageText });
@@ -922,7 +941,6 @@
       }
     }
 
-    // PARÁGRAFOS CLICÁVEIS & TOQUE PARA LER
     function getParagraphsFromCurrentBlock() {
       if (!docBlocks[currentBlockIndex]) return [];
       const raw = docBlocks[currentBlockIndex].text;
@@ -1019,7 +1037,6 @@
       renderCurrentBlock();
     }
 
-    // NARRADOR CONTÍNUO POR PARÁGRAFO
     function populateVoices() {
       if (!window.speechSynthesis) return;
       const select = document.getElementById('voice-select');
@@ -1189,7 +1206,6 @@
       container.prepend(box);
     }
 
-    // BUSCA & SÍNTESE 100% OFFLINE
     function runOfflineSearch() {
       const query = document.getElementById('offline-search-input').value.trim().toLowerCase();
       const box = document.getElementById('search-results-box');
@@ -1272,7 +1288,6 @@
       }
     }
 
-    // DITADO POR VOZ & EXPORTAÇÃO PDF / TXT
     function toggleSpeechRecognition() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) { alert('Ditado por voz não suportado neste navegador.'); return; }
@@ -1332,7 +1347,6 @@
       a.click();
     }
 
-    // PAINEL DE ACESSIBILIDADE ADAPTATIVA
     function setTheme(themeName) {
       document.body.classList.remove('theme-light', 'theme-sepia', 'theme-green', 'theme-blue', 'theme-pink', 'theme-high-contrast');
       if (themeName && themeName !== 'dark') {
@@ -1455,7 +1469,6 @@
       location.reload();
     }
 
-    // TELEMETRIA SILENCIOSA (1 MINUTO) + FEEDBACK CIENTÍFICO
     function getAnonymousUserId() {
       let uid = localStorage.getItem('eb_anon_uid');
       if (!uid) {
